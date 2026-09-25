@@ -25,7 +25,7 @@ module PacketRouter (
 );
 
     logic load_packet_state;
-
+    logic send_when_ready;
 
 
 
@@ -33,6 +33,10 @@ module PacketRouter (
     ***                                Router Data Storage                             ***
     *************************************************************************************/
     packet_s data_storage [NUM_IN_PORTS];
+
+    /** TODO: There is a stall issue as we cant load more packets until all other packets are cleared
+              the solution is use my RingBuffer to after the PrioritySelectMux to store packets. 
+              This will introduce a 1 clk delay but will allow more packets to load in.             **/
 
     always_ff @(posedge clk) begin 
         if(load_packet_state) 
@@ -50,15 +54,18 @@ module PacketRouter (
 
 
 
-    always_ff @(posedge clk) begin
-        if (load_packet_state) 
+    always_ff @(posedge clk, negedge rst_n) begin
+        if(~rst_n) 
+            for (integer i = 0; i < NUM_OUT_PORTS; ++i) 
+                dest_storage[i] <= '0;
+        else if (load_packet_state) 
             for (integer i = 0; i < NUM_OUT_PORTS; ++i) 
                 for (integer j = 0; j < NUM_IN_PORTS; ++j) 
                     dest_storage[i][j] <= (packet_in[j].addr == i) & in_packet_valid[j];
-        else 
-            for (integer i = 0; i < NUM_OUT_PORTS; ++i) 
-                if(dest_ready[i])
-                    dest_storage[i] <= next_destinations[i] ;
+        else if(send_when_ready)
+                for (integer i = 0; i < NUM_OUT_PORTS; ++i) 
+                    if(dest_ready[i])
+                        dest_storage[i] <= next_destinations[i] ;
             
     end
 
@@ -100,6 +107,10 @@ module PacketRouter (
         //Default vals
         next_state = curr_state;
         router_ready = 0;
+        load_packet_state = 1'b0;
+        send_when_ready = 1'b0;
+
+
 
         case (curr_state)
             IDLE: begin
@@ -112,7 +123,16 @@ module PacketRouter (
 
                 end
             end
-            TRANSMIT: 
+            TRANSMIT: begin
+                send_when_ready = 1'b1;
+                
+
+                /** TODO: potential clock save if we set router ready and theres in_packet_valid we dont need to return to IDLE **/
+                if (~|out_packet_valid) begin
+                    send_when_ready = 1'b0;
+                    next_state = IDLE;
+                end
+            end
 
         endcase
 
