@@ -24,87 +24,29 @@ module PacketRouter (
     output packet_s                        packets_out [NUM_OUT_PORTS]
 );
 
-    logic load_packet_state;
-    logic send_when_ready;
 
 
 
     /*************************************************************************************
-    ***                                Router Data Storage                             ***
-    *************************************************************************************/
-    packet_s data_storage [NUM_IN_PORTS];
-
-    /** TODO: There is a stall issue as we cant load more packets until all other packets are cleared
-              the solution is use my RingBuffer to after the PrioritySelectMux to store packets. 
-              This will introduce a 1 clk delay but will allow more packets to load in.             **/
-
-    always_ff @(posedge clk) begin 
-        if(load_packet_state) 
-            data_storage <= packet_in;
-    end
-
-
-
-
-    /*************************************************************************************
-    ***                              Router Addr Storage                               ***
-    *************************************************************************************/
-    logic [NUM_IN_PORTS-1:0] dest_storage [NUM_OUT_PORTS];
-    logic [NUM_IN_PORTS-1:0] next_destinations [NUM_OUT_PORTS];
-
-
-
-    always_ff @(posedge clk, negedge rst_n) begin
-        if(~rst_n) 
-            for (integer i = 0; i < NUM_OUT_PORTS; ++i) 
-                dest_storage[i] <= '0;
-        else if (load_packet_state) 
-            for (integer i = 0; i < NUM_OUT_PORTS; ++i) 
-                for (integer j = 0; j < NUM_IN_PORTS; ++j) 
-                    dest_storage[i][j] <= (packet_in[j].addr == i) & in_packet_valid[j];
-        else if(send_when_ready)
-                for (integer i = 0; i < NUM_OUT_PORTS; ++i) 
-                    if(dest_ready[i])
-                        dest_storage[i] <= next_destinations[i] ;
-            
-    end
-
-
-
-
-    /*************************************************************************************
-    ***                              Router Addr Storage                               ***
-    *************************************************************************************/
-    PrioritySelectMux channel_select [NUM_OUT_PORTS-1:0] (
-        .destinations(dest_storage),
-        .data_in(data_storage),
-    
-        //Data Outputs
-        .data_out(packets_out),
-        .next_destinations(next_destinations),
-        .valid(out_packet_valid)    
-    );
-
-
-
-
-    /*************************************************************************************
-    ***                                   State Machine                                ***
+    ***                               State Machine Logic                              ***
     *************************************************************************************/
     typedef enum logic {IDLE, TRANSMIT} router_state_e;
     router_state_e curr_state, next_state;
 
+    logic load_packet_state;
+    logic send_when_ready;
 
-    always_ff @(posedge clk, negedge rst_n) begin : FSM_FF
+
+    /*******************************      FSM Register     *******************************/
+    always_ff @(posedge clk, negedge rst_n) begin
         if(~rst_n)
             curr_state <= IDLE;
         else 
             curr_state <= next_state;
     end
 
-
-    always_comb begin : FSM_COMBINATIONAL
-        //Default vals
+    /******************************    FSM Combinational    *******************************/
+    always_comb begin
         next_state = curr_state;
         router_ready = 0;
         load_packet_state = 1'b0;
@@ -133,11 +75,71 @@ module PacketRouter (
                     next_state = IDLE;
                 end
             end
-
         endcase
-
-
     end
+
+
+
+    /*************************************************************************************
+    ***                                Router Data Register                            ***
+    *************************************************************************************/
+    /** 
+    TODO: There is a stall issue as we cant load more packets until all other packets are cleared
+        the solution is use my RingBuffer to after the PrioritySelectMux to store packets. 
+        This will introduce a 1 clk delay but will allow more packets to load in. Also would need 2 fsm         
+    **/
+    packet_s data_storage [NUM_IN_PORTS];
+
+
+    always_ff @(posedge clk) begin 
+        if(load_packet_state) 
+            data_storage <= packet_in;
+    end
+
+
+
+
+    /*************************************************************************************
+    ***                              Destination Register                              ***
+    *************************************************************************************/
+    logic [NUM_IN_PORTS-1:0]  cached_dest [NUM_OUT_PORTS];
+    logic [NUM_IN_PORTS-1:0]    next_dest [NUM_OUT_PORTS];
+
+
+    always_ff @(posedge clk, negedge rst_n) begin
+        if(~rst_n) 
+            for (integer i = 0; i != NUM_OUT_PORTS; ++i) 
+                cached_dest[i] <= '0;
+
+        else if (load_packet_state) 
+            for (integer i = 0; i != NUM_OUT_PORTS; ++i) 
+                for (integer j = 0; j != NUM_IN_PORTS; ++j) 
+                    cached_dest[i][j] <= (packet_in[j].addr == i) & in_packet_valid[j];
+                    
+        else if(send_when_ready)
+                for (integer i = 0; i != NUM_OUT_PORTS; ++i) 
+                    if(dest_ready[i])
+                        cached_dest[i] <= next_dest[i];
+    end
+
+
+
+
+    /*************************************************************************************
+    ***                                   Output Mux                                   ***
+    *************************************************************************************/
+    PrioritySelectMux channel_select [NUM_OUT_PORTS-1:0] (
+        .curr_dest(cached_dest),
+        .data_in(data_storage),
+    
+        //Data Outputs
+        .data_out(packets_out),
+        .next_dest(next_dest),
+        .valid(out_packet_valid)    
+    );
+
+
+
 
 
 
