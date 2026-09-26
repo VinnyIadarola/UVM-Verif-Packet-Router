@@ -1,5 +1,5 @@
 `default_nettype none
-module ring_buffer #(
+module RingBuffer #(
     parameter int DATA_WIDTH = 8,
     parameter int FIFO_SIZE  = 20
 ) (
