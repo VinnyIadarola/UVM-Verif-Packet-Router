@@ -8,26 +8,25 @@ import PacketRouter_p::*;
 
 `default_nettype none
 module PacketRouter (
-    //System Inputs
-    input logic clk,
-    input logic rst_n,
+    // System Inputs
+    input  logic                         clk,
+    input  logic                         rst_n,
 
-    //Control Inputs
-    input    logic   [NUM_IN_PORTS-1:0] in_packet_valid, // Sender states packet is valid
-    input    logic        [NUM_OUT_PORTS-1:0] out_ready, // Destination is ready to accept a packet
-    input logic             [TIMEOUT_WIDTH-1:0] timeout,
+    // Control Inputs
+    input  logic [NUM_IN_PORTS-1:0]      in_packet_valid,   // Sender states packet is valid
+    input  logic [NUM_OUT_PORTS-1:0]     out_ready,         // Destination is ready to accept a packet
+    input  logic [TIMEOUT_WIDTH-1:0]     timeout,
 
-    //Data Inputs
-    input  packet_s                          packets_in [NUM_IN_PORTS],
+    // Data Inputs
+    input  packet_s                      packets_in [NUM_IN_PORTS],
 
+    // Control Outputs
+    output logic [NUM_OUT_PORTS-1:0]     out_packet_valid,  // Router says packet is valid
+    output logic                         router_ready,      // Router is ready to accept from sender
 
-    //Control Outputs
-    output    logic [NUM_OUT_PORTS-1:0] out_packet_valid, // Router says packet is valid
-    output    logic                         router_ready, // Router is ready to accept from Sender 
-
-    //Data Outputs
-    output packet_s                        packets_out [NUM_OUT_PORTS],
-    output logic                         packed_rejected [NUM_IN_PORTS] 
+    // Data Outputs
+    output packet_s                      packets_out [NUM_OUT_PORTS],
+    output logic                         packed_rejected [NUM_IN_PORTS]
 );
 
     logic   [TOTAL_WIDTH-1:0] fifo_write_data [NUM_OUT_PORTS];
@@ -50,7 +49,7 @@ module PacketRouter (
         .in_packet_valid (in_packet_valid), 
         .fifo_full       (fifo_full),
         .timeout         (timeout),
-        
+
         //Data Inputs
         .packets_in       (packets_in),
 

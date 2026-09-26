@@ -4,26 +4,25 @@ import PacketRouter_p::*;
 
 `default_nettype none
 module PacketRouterRX (
-    //System Inputs
-    input logic clk,
-    input logic rst_n,
+    // System Inputs
+    input  logic                         clk,
+    input  logic                         rst_n,
 
-    //Control Inputs
-    input logic   [NUM_IN_PORTS-1:0] in_packet_valid, // Sender states packet is valid
-    input logic                            fifo_full [NUM_OUT_PORTS],  
-    input logic   [TIMEOUT_WIDTH-1:0]        timeout,
+    // Control Inputs
+    input  logic [NUM_IN_PORTS-1:0]      in_packet_valid,   // Sender states packet is valid
+    input  logic                         fifo_full [NUM_OUT_PORTS],
+    input  logic [TIMEOUT_WIDTH-1:0]     timeout,
 
-    //Data Inputs
-    input packet_s                         packets_in [NUM_IN_PORTS],
+    // Data Inputs
+    input  packet_s                      packets_in [NUM_IN_PORTS],
 
+    // Control Outputs
+    output logic                         packed_rejected [NUM_IN_PORTS],
+    output logic                         router_ready,      // Router is ready to accept from sender
+    output logic [NUM_OUT_PORTS-1:0]     fifo_push,         // Push packet into output FIFO
 
-    //Control Outputs
-    output logic                         packed_rejected [NUM_IN_PORTS], 
-    output logic                        router_ready, // Router is ready to accept from Sender 
-    output logic       [NUM_OUT_PORTS-1:0]  fifo_push, // Router is ready to accept from Sender 
-
-    //Data Outputs
-    output packet_s        fifo_write_data [NUM_OUT_PORTS]
+    // Data Outputs
+    output packet_s                      fifo_write_data [NUM_OUT_PORTS]
 
 );
 
@@ -41,6 +40,9 @@ module PacketRouterRX (
     logic [TIMEOUT_WIDTH-1:0] timeout_counter;
     logic inc_counter;
 
+    logic out_of_range [NUM_IN_PORTS];
+
+
 
     /*******************************      FSM Register     *******************************/
     always_ff @(posedge clk, negedge rst_n) begin
@@ -56,7 +58,8 @@ module PacketRouterRX (
         router_ready = 0;
         load_packet_state = 1'b0;
         store = 1'b0;
-
+        out_of_range = 'x;
+        inc_counter = 1'b0;
 
 
         unique case (curr_state)
@@ -73,22 +76,23 @@ module PacketRouterRX (
             STORE: begin
                 store = 1'b1;
                 inc_counter = 1'b1;
-                
 
                 if(~|fifo_push) begin
                     next_state = IDLE;
-                    store = 1'b1;
+                    store = 1'b0;
                     for(int i = 0; i != NUM_IN_PORTS; ++i) 
-                        if(packets_in[j].addr > NUM_OUT_PORTS-1) 
+                        if(packets_in[i].addr >= NUM_OUT_PORTS) 
                             packed_rejected[i] = 1'b1;
                 end
                       
                 if(timeout_counter >= timeout) begin
+                    next_state = IDLE;
+                    store = 1'b0;
+
                     for(int i = 0; i != NUM_IN_PORTS; ++i) 
-                        if(in_packet_valid[i] && fifo_full[i] && fifo_push[i]) 
+                        if((fifo_push[i] && fifo_full[i]) || packets_in[i].addr >= NUM_OUT_PORTS) 
                             packed_rejected[i] = 1'b1;
 
-                    next_state = IDLE;
                 end
 
             end
@@ -128,22 +132,22 @@ module PacketRouterRX (
     /*************************************************************************************
     ***                              Destination Register                              ***
     *************************************************************************************/
-    logic [NUM_IN_PORTS-1:0]  cached_dest [NUM_OUT_PORTS];
-    logic [NUM_IN_PORTS-1:0]    next_dest [NUM_OUT_PORTS];
+    logic [NUM_IN_PORTS-1:0] cached_dest [NUM_OUT_PORTS];
+    logic [NUM_IN_PORTS-1:0]   next_dest [NUM_OUT_PORTS];
 
 
     always_ff @(posedge clk, negedge rst_n) begin
         if(~rst_n) 
-            for (integer i = 0; i != NUM_OUT_PORTS; ++i) 
+            for (int i = 0; i != NUM_OUT_PORTS; ++i) 
                 cached_dest[i] <= '0;
 
         else if (load_packet_state) 
-            for (integer i = 0; i != NUM_OUT_PORTS; ++i) 
-                for (integer j = 0; j != NUM_IN_PORTS; ++j) 
+            for (int i = 0; i != NUM_OUT_PORTS; ++i) 
+                for (int j = 0; j != NUM_IN_PORTS; ++j) 
                     cached_dest[i][j] <= (packets_in[j].addr == i) & in_packet_valid[j];
                     
         else if(store)
-                for (integer i = 0; i != NUM_OUT_PORTS; ++i) 
+                for (int i = 0; i != NUM_OUT_PORTS; ++i) 
                     if(~fifo_full[i])
                         cached_dest[i] <= next_dest[i];
     end
@@ -164,7 +168,6 @@ module PacketRouterRX (
         .valid(fifo_push)    
     );
 
-    assign all_packets_sorted = ~|fifo_push;
 
 
 

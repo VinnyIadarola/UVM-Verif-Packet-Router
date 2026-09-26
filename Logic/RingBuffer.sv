@@ -58,7 +58,7 @@ module RingBuffer #(
     /**********************************************************************
     ******                    Index Counter & Logic                  ******
     **********************************************************************/
-    always_ff @(posedge clk or negedge rst_n) begin //I could just remove the rst and let it be but idk
+    always_ff @(posedge clk, negedge rst_n) begin //I could just remove the rst and let it be but idk
         if (~rst_n) 
             head_index <= '0;
         else if (pop & ~empty) 
@@ -73,7 +73,7 @@ module RingBuffer #(
     /**********************************************************************
     ******                    Item Counter & Logic                   ******
     **********************************************************************/
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge clk, negedge rst_n) begin
         if (~rst_n)
             current_entries <= '0;
         else 
@@ -89,10 +89,10 @@ module RingBuffer #(
     /**********************************************************************
     ******                       FIFO Register                       ******
     **********************************************************************/
-    integer i;
-    always_ff @(posedge clk or negedge rst_n) begin
+    always_ff @(posedge clk, negedge rst_n) begin
         if (~rst_n)
-            for (i = 0; i < FIFO_SIZE; i++) fifo[i] <= '0;
+            for (int i = 0; i != FIFO_SIZE; i++) 
+                fifo[i] <= '0;
         else if (write_en)
             fifo[write_idx] <= entry;
     end
