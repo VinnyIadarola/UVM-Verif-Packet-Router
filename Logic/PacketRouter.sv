@@ -1,9 +1,4 @@
-`include "PacketRouter_p.sv"
 import PacketRouter_p::*;
-`include "PacketRouterRX.sv"
-`include "PacketRouterTX.sv"
-`include "RingBuffer.sv"
-
 
 
 `default_nettype none

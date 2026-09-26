@@ -1,7 +1,4 @@
 
-`ifndef PACKETROUTER_P
-`define PACKETROUTER_P
-
 `default_nettype none
 package PacketRouter_p;
 parameter int DATA_WIDTH = 16;
@@ -20,7 +17,3 @@ typedef struct packed {
 
 endpackage
 `default_nettype wire
-
-
-
-`endif

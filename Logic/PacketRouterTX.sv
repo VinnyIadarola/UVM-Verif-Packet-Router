@@ -1,6 +1,4 @@
-`include "PacketRouter_p.sv"
 import PacketRouter_p::*;
-`include "PrioritySelectMux.sv"
 
 `default_nettype none
 module PacketRouterTX (
