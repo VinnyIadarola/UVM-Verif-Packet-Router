@@ -10,13 +10,15 @@ module PacketRouterRX (
 
     //Control Inputs
     input logic   [NUM_IN_PORTS-1:0] in_packet_valid, // Sender states packet is valid
-    input logic                            fifo_full [NUM_OUT_PORTS],
+    input logic                            fifo_full [NUM_OUT_PORTS],  
+    input logic   [TIMEOUT_WIDTH-1:0]        timeout,
 
     //Data Inputs
     input packet_s                         packets_in [NUM_IN_PORTS],
 
 
     //Control Outputs
+    output logic                         packed_rejected [NUM_IN_PORTS], 
     output logic                        router_ready, // Router is ready to accept from Sender 
     output logic       [NUM_OUT_PORTS-1:0]  fifo_push, // Router is ready to accept from Sender 
 
@@ -36,6 +38,8 @@ module PacketRouterRX (
     logic load_packet_state;
     logic store;
     logic all_packets_sorted;
+    logic [TIMEOUT_WIDTH-1:0] timeout_counter;
+    logic inc_counter;
 
 
     /*******************************      FSM Register     *******************************/
@@ -68,11 +72,23 @@ module PacketRouterRX (
             end
             STORE: begin
                 store = 1'b1;
-
+                inc_counter = 1'b1;
+                
 
                 if(~|fifo_push) begin
                     next_state = IDLE;
                     store = 1'b1;
+                    for(int i = 0; i != NUM_IN_PORTS; ++i) 
+                        if(packets_in[j].addr > NUM_OUT_PORTS-1) 
+                            packed_rejected[i] = 1'b1;
+                end
+                      
+                if(timeout_counter >= timeout) begin
+                    for(int i = 0; i != NUM_IN_PORTS; ++i) 
+                        if(in_packet_valid[i] && fifo_full[i] && fifo_push[i]) 
+                            packed_rejected[i] = 1'b1;
+
+                    next_state = IDLE;
                 end
 
             end
@@ -80,15 +96,25 @@ module PacketRouterRX (
     end
 
 
+    /*************************************************************************************
+    ***                                 Timeout Counter                                ***
+    *************************************************************************************/
+    always_ff @(posedge clk, negedge rst_n) begin
+        if(~rst_n)
+            timeout_counter <= '0;
+        else if(store)
+            timeout_counter <= '0;
+        else if(inc_counter)
+            timeout_counter <= timeout_counter + 1'b1;
+   
+    end     
+
+
+
 
     /*************************************************************************************
     ***                                Router Data Register                            ***
     *************************************************************************************/
-    /** 
-    TODO: There is a stall issue as we cant load more packets until all other packets are cleared
-        the solution is use my RingBuffer to after the PrioritySelectMux to store packets. 
-        This will introduce a 1 clk delay but will allow more packets to load in. Also would need 2 fsm         
-    **/
     packet_s data_storage [NUM_IN_PORTS];
 
 

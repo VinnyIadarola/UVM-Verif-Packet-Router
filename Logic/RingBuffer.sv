@@ -50,8 +50,8 @@ module RingBuffer #(
     /**********************************************************************
     ******                    General Assignments                    ******
     **********************************************************************/
-    assign full  = (current_entries == FIFO_SIZE[FIFO_CNT_WIDTH-1:0]);
-    assign empty = (current_entries == '0);
+    assign full  = (current_entries == FIFO_SIZE[FIFO_CNT_WIDTH-1:0]) & ~pop ;
+    assign empty = (current_entries == '0) & ~push;
     assign head  = fifo[head_index];
 
 
@@ -98,7 +98,7 @@ module RingBuffer #(
     end
 
 
-    assign write_en = push & (~full | pop);
+    assign write_en = push & ~full;
     // Psuedo modulo to avoid synthesis freaking out if theydont have it
     assign sum = head_index + current_entries[FIFO_IDX_WIDTH-1:0];
     assign write_idx = (sum >= FIFO_SIZE) ? sum - FIFO_SIZE : sum[FIFO_IDX_WIDTH-1:0];

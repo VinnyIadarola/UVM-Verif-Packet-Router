@@ -15,6 +15,7 @@ module PacketRouter (
     //Control Inputs
     input    logic   [NUM_IN_PORTS-1:0] in_packet_valid, // Sender states packet is valid
     input    logic        [NUM_OUT_PORTS-1:0] out_ready, // Destination is ready to accept a packet
+    input logic             [TIMEOUT_WIDTH-1:0] timeout,
 
     //Data Inputs
     input  packet_s                          packets_in [NUM_IN_PORTS],
@@ -25,7 +26,8 @@ module PacketRouter (
     output    logic                         router_ready, // Router is ready to accept from Sender 
 
     //Data Outputs
-    output packet_s                        packets_out [NUM_OUT_PORTS]
+    output packet_s                        packets_out [NUM_OUT_PORTS],
+    output logic                         packed_rejected [NUM_IN_PORTS] 
 );
 
     logic   [TOTAL_WIDTH-1:0] fifo_write_data [NUM_OUT_PORTS];
@@ -47,13 +49,15 @@ module PacketRouter (
         //Control Inputs
         .in_packet_valid (in_packet_valid), 
         .fifo_full       (fifo_full),
-
+        .timeout         (timeout),
+        
         //Data Inputs
         .packets_in       (packets_in),
 
         //Control Outputs
         .router_ready    (router_ready), 
         .fifo_push       (fifo_push),   
+        .packed_rejected (packed_rejected),
 
         //Data Outputs
         .fifo_write_data (fifo_write_data)
