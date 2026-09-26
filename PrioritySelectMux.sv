@@ -29,7 +29,7 @@ module PrioritySelectMux (
 
     always_comb begin 
         found = 0;
-        data_out = data_in[0];
+        data_out = 'x;
         next_dest = curr_dest;
 
 
