@@ -26,7 +26,10 @@ Packet::Packet(uint data_val, uint addr_val)
     id = num_instants++;
 }
 
-
+bool Packet::operator==(const Packet &p) const
+{
+    return id == p.id;
+}
 
 inline void load(BitVector &v, uint val) {
 

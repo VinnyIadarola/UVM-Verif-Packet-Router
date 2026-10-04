@@ -14,7 +14,7 @@ class Transaction {
         static void set_input_width(size_t input_width);
         static void set_output_width(size_t input_width);
 
-
+        bool operator==(const Transaction &other) const;
 
         /********************** Constructor **********************/
         Transaction();
@@ -36,6 +36,14 @@ class Transaction {
         std::vector<Packet>::const_iterator cbegin();
         std::vector<Packet>::const_iterator cend();
 
+        /*********************    *********************/
+        friend void TransactionState::grab_state(const Transaction& txn) {
+            for(size_t i = 0; i != txn.input_width; ++i) 
+                if(bfm.valid_vector[i])
+                    valid_ids[bfm.packets[i].id] = false;
+        }
+
+
 
         
     private:
@@ -50,4 +58,10 @@ class Transaction {
         int num_loaded = 0;
         BFM bfm;
  
+};
+
+struct TransactionHash {
+    std::size_t operator()(const Transaction& t) const {
+        return IdHash{}(t.id);
+    }
 };

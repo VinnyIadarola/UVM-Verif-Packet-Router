@@ -13,7 +13,15 @@
 #include "StaticVector.hpp"
 #include <cstring>
 
-using BitVector = StaticVector<bool>;
+#include "Packet.hpp"
+#include "configs.hpp"
+#include "RandGen.hpp"
+#include "Transaction.hpp"
+#include "RouterRegression.cpp"
+#include "Scoreboard.hpp"
+
+
+
 
 template <typename T>
 class WriteOnce {
@@ -37,6 +45,10 @@ private:
 
 using Id = WriteOnce<int>;
 
-#include "Packet.hpp"
-#include "configs.hpp"
-#include "RandGen.hpp"
+
+struct IdHash {
+    std::size_t operator()(const Id& id) const {
+        return std::hash<int>{}(id);
+    }
+};
+

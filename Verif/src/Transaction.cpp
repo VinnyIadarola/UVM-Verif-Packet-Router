@@ -23,7 +23,10 @@ void Transaction::set_output_width(size_t output_width) {
     output_width_set = true;
 
     Transaction::output_width = output_width;
+}
 
+bool Transaction::operator==(const Transaction& other) const {
+    return id == other.id;
 }
 
 
@@ -89,3 +92,9 @@ std::vector<Packet>::const_iterator Transaction::cbegin() {
 std::vector<Packet>::const_iterator Transaction::cend() {
     return bfm.packets.cend();
 }
+
+
+
+
+
+

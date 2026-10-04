@@ -50,3 +50,5 @@ class StaticVector {
   
 
 };
+
+using BitVector = StaticVector<bool>;

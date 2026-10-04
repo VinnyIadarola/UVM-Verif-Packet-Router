@@ -31,7 +31,7 @@ void Generator::reset() {
 /***********************************************************
 ***                   Generation Control                 ***
 ***********************************************************/
-Transaction&& Generator::next() {
+Transaction Generator::next() {
     Transaction t;
     auto delay_iter = delay_counts.begin();
     bool load_success;
@@ -47,9 +47,12 @@ Transaction&& Generator::next() {
 
         load_success = t.load_packet(std::move(p), valid);
     } while(load_success);
+
+
+     
     
 
-    return std::move(t);
+    return t;
 }
 
 
