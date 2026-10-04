@@ -1,4 +1,8 @@
 #include "../header/Transaction.hpp"
+
+#include <stdexcept>
+#include <string>
+#include <utility>
 using namespace std;
 
 
@@ -98,3 +102,9 @@ std::vector<Packet>::const_iterator Transaction::cend() {
 
 
 
+
+void TransactionState::grab_state(const Transaction& txn) {
+    for (std::size_t i = 0; i != txn.input_width; ++i)
+        if (txn.bfm.validity_vector[i])
+            valid_ids[txn.bfm.packets[i].id] = false;
+}

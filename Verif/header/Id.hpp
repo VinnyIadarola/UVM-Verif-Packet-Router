@@ -1,27 +1,10 @@
 #pragma once
 
-#include <bit>
-#include <cstdint>
+#include <cstddef>
+#include <functional>
 #include <optional>
 #include <stdexcept>
 #include <utility>
-#include <vector>
-#include <random>
-#include <cmath>
-#include <unordered_map>
-#include <variant>
-#include "StaticVector.hpp"
-#include <cstring>
-
-#include "Packet.hpp"
-#include "configs.hpp"
-#include "RandGen.hpp"
-#include "Transaction.hpp"
-#include "RouterRegression.cpp"
-#include "Scoreboard.hpp"
-
-
-
 
 template <typename T>
 class WriteOnce {

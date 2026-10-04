@@ -1,6 +1,12 @@
 #pragma once
 
-#include "imports.hpp"
+#include <cstddef>
+#include <vector>
+
+#include "Id.hpp"
+#include "Packet.hpp"
+#include "TransactionState.hpp"
+#include "configs.hpp"
 
 
 
@@ -37,11 +43,7 @@ class Transaction {
         std::vector<Packet>::const_iterator cend();
 
         /*********************    *********************/
-        friend void TransactionState::grab_state(const Transaction& txn) {
-            for(size_t i = 0; i != txn.input_width; ++i) 
-                if(bfm.valid_vector[i])
-                    valid_ids[bfm.packets[i].id] = false;
-        }
+        friend class TransactionState;
 
 
 

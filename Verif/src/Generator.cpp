@@ -1,5 +1,10 @@
 #include "../header/Generator.hpp"
 
+#include <stdexcept>
+#include <utility>
+
+#include "../header/Packet.hpp"
+
 using namespace std;
 
 

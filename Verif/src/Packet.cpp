@@ -1,4 +1,7 @@
 #include "../header/Packet.hpp"
+
+#include <stdexcept>
+#include <utility>
 using namespace std;
 
 void Packet::set_addr_width(size_t addr_width) {

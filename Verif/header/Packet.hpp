@@ -1,6 +1,9 @@
 #pragma once
 
-#include "imports.hpp"
+#include <cstddef>
+
+#include "Id.hpp"
+#include "StaticVector.hpp"
 
 class Packet {
     public:

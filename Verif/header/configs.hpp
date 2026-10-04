@@ -1,6 +1,11 @@
 #pragma once
 
-#include "imports.hpp"
+#include <bit>
+#include <cstddef>
+#include <cstdint>
+
+#include "Packet.hpp"
+#include "StaticVector.hpp"
 
 constexpr unsigned clog2(std::uint64_t x) {
     return x <= 1 ? 0 : std::bit_width(x - 1);
