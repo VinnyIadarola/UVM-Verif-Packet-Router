@@ -83,7 +83,7 @@ module PacketRouterRX (
                             packed_rejected[i] = 1'b1;
                 end
                       
-                if(timeout_counter >= timeout) begin
+                if(timeout_counter >= TIMEOUT_CLKS) begin
                     next_state = IDLE;
                     store = 1'b0;
 
