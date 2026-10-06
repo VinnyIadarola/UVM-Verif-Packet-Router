@@ -1,15 +1,16 @@
 #pragma once
 
+#include <stdexcept>
+#include <string>
+#include <utility>
+
 #include <cstddef>
 #include <vector>
 
 #include "Id.hpp"
 #include "Packet.hpp"
-#include "TransactionState.hpp"
 #include "configs.hpp"
-
-
-
+#include "Interface.hpp"
 
 class Transaction {
     public:
@@ -32,11 +33,10 @@ class Transaction {
         Transaction& operator=(const Transaction&);
         Transaction& operator=(Transaction&& t);
 
-
-   
         /********************** Packets Manipulation **********************/
 
         bool load_packet(Packet&& p, bool is_packet_valid);
+        bool load_ready(bool ready);
 
         /********************** Packets Control **********************/
         std::vector<Packet>::const_iterator cbegin();
@@ -45,11 +45,8 @@ class Transaction {
         /*********************    *********************/
         friend class TransactionState;
 
-
-
-        
     private:
-        
+
         inline static bool input_width_set = false;
         inline static bool output_width_set = false;
 
@@ -57,13 +54,13 @@ class Transaction {
         inline static size_t output_width;
 
         inline static int num_instances = 0;
-        int num_loaded = 0;
-        BFM bfm;
- 
+        int packets_loaded = 0;
+        int readies_loaded = 0;
+
+        DataInputs inputs;
+
 };
 
 struct TransactionHash {
-    std::size_t operator()(const Transaction& t) const {
-        return IdHash{}(t.id);
-    }
+    std::size_t operator()(const Transaction& t) const;
 };

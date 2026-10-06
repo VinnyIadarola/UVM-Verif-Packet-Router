@@ -3,7 +3,7 @@ import PacketRouter_p::*;
 `default_nettype none
 module PacketRouterTX (
     // Control Inputs
-    input  logic [NUM_OUT_PORTS-1:0]    out_ready,        // Destination is ready to accept a packet
+    input  logic [NUM_OUT_PORTS-1:0]    dest_ready,        // Destination is ready to accept a packet
 
     // Data Inputs
     input  packet_s                     fifo_head [NUM_OUT_PORTS],
@@ -25,14 +25,14 @@ assign packets_out = fifo_head;
 
 
 always_comb begin 
-    fifo_pop = '0;
+    fifo_pop = '{default: '0};
     out_packet_valid = '0;
 
     for(int i = 0; i != NUM_OUT_PORTS; ++i) begin
         if(!fifo_empty[i])
             out_packet_valid[i] = 1;
 
-        if(out_ready[i]) 
+        if(dest_ready[i]) 
             fifo_pop[i] = 1; 
     end
 end

@@ -1,51 +1,30 @@
 #pragma once
 
-#include <algorithm>
-#include <cstring>
+#include <map>
 #include <random>
+#include <string_view>
+#include <utility>
+#include <algorithm>
 #include <stdexcept>
 
 #include "configs.hpp"
 
+class RandGen {
+    using Range = std::pair<uint, uint>;
 
+    public:
+        /************************* Class Constructors ************************/
+        explicit RandGen(const RandomConfig& config);
 
+        /************************* Class Operators ***************************/
+        uint operator()(const char* s);
 
-class RandGen  {
-public:
-    explicit RandGen(const Test_Config& config) : 
-        config(&config),
-        rng(config.seed)
-    {}
+    private:
+        /************************* Private Properties ************************/
+        std::map<std::string_view, Range> uint_ranges;
+        std::uniform_int_distribution<uint> dist;
+        std::mt19937 rng;
 
-    uint operator()(const char* s) {
-        if (std::strcmp(s, "delay") == 0)
-            return get_range(config->delay_min, config->delay_max);
-
-        if (std::strcmp(s, "addr") == 0)
-            return get_range(config->addr_min, config->addr_max);
-
-        if (std::strcmp(s, "data") == 0)
-            return get_range(config->data_min, config->data_max);
-
-        if (std::strcmp(s, "validity") == 0)
-            return get_range(1, 100) <= std::min(config->validity_prob, 100u);
-
-        if (std::strcmp(s, "ready") == 0)
-            return get_range(1, 100) <= std::min(config->validity_prob, 100u);
-
-
-
-        throw std::invalid_argument("Invalid distribution");
-    }
-
-private:
-    std::uniform_int_distribution<uint> dist;
-    const Test_Config* config;
-    std::mt19937 rng;
-
-    uint get_range(uint min, uint max) {
-        return dist(rng, std::uniform_int_distribution<uint>::param_type(min, max));
-    }
-
- 
+        /*************************** Private Helpers **************************/
+        uint get_range(uint min, uint max);
 };

@@ -56,7 +56,7 @@ module PacketRouterRX (
         router_ready = 0;
         load_packet_state = 1'b0;
         store = 1'b0;
-        out_of_range = 'x;
+        out_of_range = '{default: 'x};
         inc_counter = 1'b0;
 
 

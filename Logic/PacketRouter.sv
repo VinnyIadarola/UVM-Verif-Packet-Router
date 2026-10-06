@@ -9,7 +9,7 @@ module PacketRouter (
 
     // Control Inputs
     input  logic [NUM_IN_PORTS-1:0]      in_packet_valid,   // Sender states packet is valid
-    input  logic [NUM_OUT_PORTS-1:0]     out_ready,         // Destination is ready to accept a packet
+    input  logic [NUM_OUT_PORTS-1:0]     dest_ready,         // Destination is ready to accept a packet
 
     // Data Inputs
     input  packet_s                      packets_in [NUM_IN_PORTS],
@@ -42,6 +42,7 @@ module PacketRouter (
         //Control Inputs
         .in_packet_valid (in_packet_valid), 
         .fifo_full       (fifo_full),
+        .timeout         ('0), // RX currently uses its internal TIMEOUT_CLKS counter.
 
         //Data Inputs
         .packets_in       (packets_in),
@@ -90,7 +91,7 @@ module PacketRouter (
     *************************************************************************************/
     PacketRouterTX tx (
         //Control Inputs
-        .out_ready        (out_ready),
+        .dest_ready        (dest_ready),
 
         //Data Inputs
         .fifo_head        (fifo_head),

@@ -21,17 +21,14 @@ public:
         return value.value();
     }
 
-
 private:
     std::optional<T> value;
 };
 
 using Id = WriteOnce<int>;
 
-
 struct IdHash {
     std::size_t operator()(const Id& id) const {
         return std::hash<int>{}(id);
     }
 };
-

@@ -37,12 +37,13 @@ module RingBuffer #(
 
     //Item Counter & Logic
     logic [FIFO_CNT_WIDTH-1:0] current_entries;
-    wire                       inc, dec;
+    wire                       read_en;
 
     //FIFO Register 
     logic [DATA_WIDTH-1:0]     fifo [0:FIFO_SIZE-1];
     wire  [FIFO_IDX_WIDTH-1:0] write_idx;
-    wire  [FIFO_IDX_WIDTH:0]   sum; //1 larger to avoid overflow
+    wire  [FIFO_CNT_WIDTH:0]   sum; // Retain the full occupancy and carry.
+    wire  [FIFO_CNT_WIDTH:0]   wrapped_sum;
     wire                       write_en;
 
 
@@ -51,7 +52,7 @@ module RingBuffer #(
     ******                    General Assignments                    ******
     **********************************************************************/
     assign full  = (current_entries == FIFO_SIZE[FIFO_CNT_WIDTH-1:0]) & ~pop ;
-    assign empty = (current_entries == '0) & ~push;
+    assign empty = (current_entries == '0);
     assign head  = fifo[head_index];
 
 
@@ -61,12 +62,12 @@ module RingBuffer #(
     always_ff @(posedge clk, negedge rst_n) begin //I could just remove the rst and let it be but idk
         if (~rst_n) 
             head_index <= '0;
-        else if (pop & ~empty) 
+        else if (read_en) 
             head_index <= nxt_head_idx;
     end
 
     // wraps around if needed 
-    assign nxt_head_idx = (head_index != FIFO_SIZE - 1'b1) ? head_index + 1'b1 : '0;
+    assign nxt_head_idx = (head_index != FIFO_IDX_WIDTH'(FIFO_SIZE - 1)) ? head_index + 1'b1 : '0;
 
 
 
@@ -76,13 +77,15 @@ module RingBuffer #(
     always_ff @(posedge clk, negedge rst_n) begin
         if (~rst_n)
             current_entries <= '0;
-        else 
-            current_entries <= current_entries + inc - dec;
+        else if (write_en && !read_en)
+            current_entries <= current_entries + 1'b1;
+        else if (read_en && !write_en)
+            current_entries <= current_entries - 1'b1;
     end
     
-    //push and pop are in both to ensure nothing changes if they both are active
-    assign inc =  push & ~pop & ~full;
-    assign dec = ~push &  pop & ~empty;
+    // Only queued data can be popped. A push into an empty FIFO is stored
+    // even when pop is asserted; it becomes visible after the clock edge.
+    assign read_en = pop & ~empty;
 
           
 
@@ -100,8 +103,10 @@ module RingBuffer #(
 
     assign write_en = push & ~full;
     // Psuedo modulo to avoid synthesis freaking out if theydont have it
-    assign sum = head_index + current_entries[FIFO_IDX_WIDTH-1:0];
-    assign write_idx = (sum >= FIFO_SIZE) ? sum - FIFO_SIZE : sum[FIFO_IDX_WIDTH-1:0];
+    assign sum = (FIFO_CNT_WIDTH+1)'(head_index) + (FIFO_CNT_WIDTH+1)'(current_entries);
+    assign wrapped_sum = (sum >= (FIFO_CNT_WIDTH+1)'(FIFO_SIZE))
+                       ? sum - (FIFO_CNT_WIDTH+1)'(FIFO_SIZE) : sum;
+    assign write_idx = FIFO_IDX_WIDTH'(wrapped_sum);
 
 
 

@@ -11,8 +11,7 @@ constexpr unsigned clog2(std::uint64_t x) {
     return x <= 1 ? 0 : std::bit_width(x - 1);
 }
 
-
-struct DUT_Config {
+struct PacketRouterConfig {
     int DATA_WIDTH = 16;
     int NUM_IN_PORTS = 2;
     int NUM_OUT_PORTS = 4;
@@ -24,30 +23,15 @@ struct DUT_Config {
 
 //abstract to general test config and extended by Router_test_config
 
-struct Test_Config {
-    uint delay_min;
-    uint delay_max;
+struct RandomConfig {
+    uint valid_delay_min;
+    uint valid_delay_max;
     uint addr_min;
     uint addr_max;
     uint data_min;
     uint data_max;
-    uint validity_prob;
+    uint ready_delay_min;
+    uint ready_delay_max;
     uint32_t seed;
 };
 
-struct BFM {
-        StaticVector<Packet> packets;
-        BitVector validity_vector;
-        BitVector ready_vector;
-
-        BFM() = delete;
-
-
-        BFM(std::size_t input_width, std::size_t output_width) :
-            packets(StaticVector<Packet>(input_width)),
-            validity_vector(BitVector(input_width)),
-            ready_vector(BitVector(output_width))
-        {}
-
-
-};

@@ -1,11 +1,5 @@
 #include "../header/Transaction.hpp"
 
-#include <stdexcept>
-#include <string>
-#include <utility>
-using namespace std;
-
-
 /***********************************************************
 ***                     Class Control                    ***
 ***********************************************************/
@@ -15,7 +9,7 @@ void Transaction::reset() {
 
 void Transaction::set_input_width(size_t input_width) {
     if(input_width_set)
-        throw logic_error("Trying to redeclare input width without reset T.id: " + num_instances);
+        throw std::logic_error("Trying to redeclare input width without reset T.id: " + num_instances);
     input_width_set = true;
 
     Transaction::input_width = input_width;
@@ -23,7 +17,7 @@ void Transaction::set_input_width(size_t input_width) {
 
 void Transaction::set_output_width(size_t output_width) {
     if(output_width_set)
-        throw logic_error("Trying to redeclare output width without reset T.id: " + num_instances);
+        throw std::logic_error("Trying to redeclare output width without reset T.id: " + num_instances);
     output_width_set = true;
 
     Transaction::output_width = output_width;
@@ -34,20 +28,22 @@ bool Transaction::operator==(const Transaction& other) const {
 }
 
 
+
+
 /***********************************************************
 ***                      Constructors                    ***
 ***********************************************************/
 Transaction::Transaction() :
-    bfm(BFM(input_width, output_width))
+    inputs(DataInputs(input_width, output_width))
 { id = num_instances++; }
-
 
 Transaction::Transaction(const Transaction&) = default;
 
 Transaction::Transaction(Transaction&& t) noexcept :
     id(std::move(t.id)),
-    bfm(std::move(t.bfm))
+    inputs(std::move(t.inputs))
 {}
+
 
 
 
@@ -58,53 +54,55 @@ Transaction& Transaction::operator=(const Transaction&) = default;
 
 Transaction& Transaction::operator=(Transaction&& t) {
     if(!input_width_set || !output_width_set)
-        throw logic_error("A transaction was instantiated without setting widths");
-        
+        throw std::logic_error("A transaction was instantiated without setting widths");
+
     id  = std::move(t.id);
-    bfm = std::move(t.bfm);
+    inputs = std::move(t.inputs);
 
     return *this;
 }
+
 
 
 /***********************************************************
 ***                  Packets Manipulation                ***
 ***********************************************************/
 bool Transaction::load_packet(Packet&& p, bool is_packet_valid) {
-    if(num_loaded == bfm.packets.size())
-        throw out_of_range("Tried to load too many packets. pid: " + std::to_string(p.id));
+    if(packets_loaded == inputs.packets.size())
+        throw std::out_of_range("Tried to load too many packets. pid: " + std::to_string(p.id));
 
-    bfm.packets[num_loaded] = std::move(p);
-    bfm.validity_vector[num_loaded] = is_packet_valid;
+    inputs.packets[packets_loaded] = std::move(p);
+    inputs.packet_valid[packets_loaded] = is_packet_valid;
 
-    ++num_loaded;
+    ++packets_loaded;
 
-
-    return num_loaded == bfm.packets.size();
+    return packets_loaded == inputs.packets.size();
 }
 
 
+bool Transaction::load_ready(bool ready) {
+    if(readies_loaded == inputs.dest_ready.size())
+        throw std::out_of_range("Tried to load too many ready bits. txn.id: " + std::to_string(id));
+    
+    inputs.dest_ready[readies_loaded] = ready;
+
+    ++readies_loaded;
+
+    return readies_loaded == inputs.dest_ready.size();
+}
 
 
 /***********************************************************
 ***                    Packets Control                   ***
 ***********************************************************/
 std::vector<Packet>::const_iterator Transaction::cbegin() {
-    return bfm.packets.cbegin();
+    return inputs.packets.cbegin();
 }
 
 std::vector<Packet>::const_iterator Transaction::cend() {
-    return bfm.packets.cend();
+    return inputs.packets.cend();
 }
 
-
-
-
-
-
-
-void TransactionState::grab_state(const Transaction& txn) {
-    for (std::size_t i = 0; i != txn.input_width; ++i)
-        if (txn.bfm.validity_vector[i])
-            valid_ids[txn.bfm.packets[i].id] = false;
-}
+std::size_t TransactionHash::operator()(const Transaction& t) const {
+        return IdHash{}(t.id);
+    }

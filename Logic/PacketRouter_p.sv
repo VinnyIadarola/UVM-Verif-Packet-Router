@@ -8,6 +8,7 @@ parameter int ADDR_WIDTH = $clog2(NUM_OUT_PORTS);
 parameter int TOTAL_WIDTH = DATA_WIDTH + ADDR_WIDTH;
 parameter int FIFO_SIZE = 2 * NUM_IN_PORTS;
 parameter int TIMEOUT_CLKS = 4 * NUM_IN_PORTS;
+parameter int TIMEOUT_WIDTH = $clog2(TIMEOUT_CLKS + 1);
         
 typedef struct packed {
     logic [ADDR_WIDTH-1:0] addr;

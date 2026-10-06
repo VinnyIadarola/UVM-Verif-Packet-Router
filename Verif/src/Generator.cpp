@@ -1,34 +1,36 @@
 #include "../header/Generator.hpp"
 
-#include <stdexcept>
-#include <utility>
 
-#include "../header/Packet.hpp"
-
-using namespace std;
-
-
-
-/**************************************               Public               **************************************/
-/***********************************************************
-***                      Constructors                    ***
-***********************************************************/
-Generator::Generator(const DUT_Config &dut_config, const Test_Config &test_config) {
-    init_dut_variables(dut_config);
-    init_test_variables(test_config);
-
-
-
-
-}
-
- 
 
 /***********************************************************
 ***                     System Control                   ***
 ***********************************************************/
 void Generator::reset() {
-    throw logic_error("Generator::reset is not implememted");
+    throw std::logic_error("Generator::reset is not implememted");
+}
+
+/***********************************************************
+***                      Constructors                    ***
+***********************************************************/
+Generator::Generator(const PacketRouterConfig &dut_config, const RandomConfig &test_config) :
+    valid_delays(StaticVector<uint>(dut_config.NUM_IN_PORTS)),
+    ready_delays(StaticVector<uint>(dut_config.NUM_OUT_PORTS)),
+    rand_gen(RandGen(test_config))
+{
+
+    for(auto &count : valid_delays)
+        count = rand_gen("valid");
+
+    for(auto &count : ready_delays)
+        count = rand_gen("ready");
+
+   
+
+    Transaction::set_input_width(dut_config.NUM_IN_PORTS);
+    Transaction::set_output_width(dut_config.NUM_OUT_PORTS);
+
+    Packet::set_data_width(dut_config.DATA_WIDTH);
+    Packet::set_addr_width(dut_config.ADDR_WIDTH);
 }
 
 
@@ -37,48 +39,69 @@ void Generator::reset() {
 ***                   Generation Control                 ***
 ***********************************************************/
 Transaction Generator::next() {
-    Transaction t;
-    auto delay_iter = delay_counts.begin();
-    bool load_success;
+    Transaction txn;
+    //create Packets
+    create_with_delays(
+        txn,
+        valid_delays,
+        [&](bool valid) {
+            return txn.load_packet(
+                Packet(rand_gen("addr"),rand_gen("data")),
+                valid
+            );
+        }
+    );
+
+    //Create Ready Vector
+    create_with_delays(
+        txn,
+        ready_delays,
+        [&](bool ready) {
+            return txn.load_ready(ready);
+        }
+    );
+
+    return txn;
+}
+
+
+
+
+
+/***********************************************************
+***                   Generation helpers                 ***
+***********************************************************/
+template <typename DelayContainer, typename Loader>
+void Generator::create_with_delays(
+    Transaction& txn,
+    DelayContainer& delays,
+    Loader loader
+) {
+    auto delay_iter = delays.begin();
+    bool txn_full = false;
+
     do {
-        if(delay_iter == delay_counts.end())
-            throw logic_error("Delayed count was accessed out of range during Transaction gen.. T.id: " + t.id);
+        if (delay_iter == delays.end()) {
+            throw std::logic_error(
+                "Delay count accessed out of range during Transaction gen. txn.id: "
+                + txn.id
+            );
+        }
 
-        bool valid = (*delay_iter) == 0;
-        Packet p = Packet(rand_gen("addr"),  rand_gen("data"));
+        const bool active = (*delay_iter == 0);
 
-        *delay_iter = (valid) ? rand_gen("delay") : --*delay_iter; 
+        if (active) {
+            *delay_iter = rand_gen("delay");
+        } else {
+            --(*delay_iter);
+        }
+
         ++delay_iter;
 
-        load_success = t.load_packet(std::move(p), valid);
-    } while(load_success);
+        txn_full = loader(active);
 
-
-     
-    
-
-    return t;
+    } while (!txn_full);
 }
 
 
 
-
-/**************************************               Private               **************************************/
-void Generator::init_dut_variables(const DUT_Config &dut_config) {
-    Transaction::set_input_width(dut_config.NUM_IN_PORTS);
-    Transaction::set_output_width(dut_config.NUM_OUT_PORTS);
-
-    Packet::set_data_width(dut_config.DATA_WIDTH);
-    Packet::set_addr_width(dut_config.ADDR_WIDTH);
-
-
-
-}
-
-void Generator::init_test_variables(const Test_Config &test_config) {
-    rand_gen = RandGen(test_config);
-
-    for(auto &count : delay_counts)
-        count = rand_gen("delay");
-
-}
